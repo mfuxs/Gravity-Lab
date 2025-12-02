@@ -60,7 +60,7 @@ export class Renderer {
     ];
   }
 
-  static render(canvas, ctx, bodies, particles, view, config, drag, missionState, missionConfig, currentTool) {
+  static render(canvas, ctx, bodies, particles, view, config, drag, missionState, missionConfig, currentTool, orbitPaths = []) {
     const { x: panX, y: panY, zoom } = view;
     const { showOrbitPreview, showLagrange } = config;
     const { currentX, currentY, isDragging } = drag;
@@ -91,67 +91,11 @@ export class Renderer {
     if (showVectors || showHillSpheres || showOrbitPaths || showShadows) {
       const sun = bodies.find(b => b.type === 'star');
 
-      // Global Orbit Preview
-      if (showOrbitPaths) {
-        // Clone bodies for simulation
-        // Filter out particles or very small debris to save performance
-        const simBodies = bodies
-          .filter(b => b.mass > 1) // Only simulate significant bodies
-          .map(b => ({
-            x: b.x, y: b.y,
-            vx: b.vx, vy: b.vy,
-            mass: b.mass, radius: b.radius,
-            isStatic: b.isStatic,
-            id: b.id,
-            color: b.color,
-            path: [{ x: b.x, y: b.y }]
-          }));
-
-        const steps = 500; // Number of steps to preview
-        const dt = 1.0; // Time step for preview
-        
-        // Run Simulation
-        for (let i = 0; i < steps; i++) {
-          // 1. Calculate Forces
-          for (let j = 0; j < simBodies.length; j++) {
-            const b1 = simBodies[j];
-            if (b1.isStatic) continue;
-
-            let fx = 0, fy = 0;
-            for (let k = 0; k < simBodies.length; k++) {
-              if (j === k) continue;
-              const b2 = simBodies[k];
-              const dx = b2.x - b1.x; const dy = b2.y - b1.y;
-              const distSq = dx * dx + dy * dy; const dist = Math.sqrt(distSq);
-
-              if (dist > b1.radius + b2.radius) {
-                const f = (G * b1.mass * b2.mass) / (distSq + SOFTENING);
-                fx += f * (dx / dist); fy += f * (dy / dist);
-              }
-            }
-            b1.vx += (fx / b1.mass) * dt;
-            b1.vy += (fy / b1.mass) * dt;
-          }
-
-          // 2. Update Positions
-          for (let j = 0; j < simBodies.length; j++) {
-            const b1 = simBodies[j];
-            if (!b1.isStatic) {
-              b1.x += b1.vx * dt;
-              b1.y += b1.vy * dt;
-              
-              // Store point every 10 steps to save memory/drawing
-              if (i % 10 === 0) {
-                b1.path.push({ x: b1.x, y: b1.y });
-              }
-            }
-          }
-        }
-
-        // Draw Paths
+      // Global Orbit Preview (Worker Based)
+      if (showOrbitPaths && orbitPaths.length > 0) {
         ctx.lineWidth = 1 / zoom;
-        simBodies.forEach(b => {
-          if (b.path.length > 1) {
+        orbitPaths.forEach(b => {
+          if (b.path && b.path.length > 1) {
             ctx.beginPath();
             ctx.strokeStyle = b.color;
             ctx.globalAlpha = 0.4;

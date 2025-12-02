@@ -33,10 +33,48 @@ export class MissionControl {
     return this.Isp * this.g0 * Math.log(this.currentMass / this.dryMass);
   }
 
+  updateMass() {
+    this.body.mass = this.dryMass + (this.fuel / 100) * this.fuelMassCapacity;
+  }
+
   consumeFuel(amount) {
     if (this.fuel > 0) {
       this.fuel = Math.max(0, this.fuel - amount);
-      this.body.mass = this.currentMass; // Update physics body mass
+      this.updateMass();
+    }
+  }
+
+  applyThrust(power, dt, spawnParticles) {
+    if (this.fuel <= 0) {
+      this.thrusting = false;
+      return;
+    }
+
+    this.thrusting = true;
+    
+    // F = m * a  =>  a = F / m
+    // We treat 'power' as acceleration for simplicity in this arcade sim, 
+    // but let's make it slightly more physical: Power = Force / Mass? 
+    // Existing code treated power as direct acceleration addition. 
+    // Let's stick to existing "power as acceleration" to maintain feel, 
+    // or upgrade to Force? 
+    // Let's keep it compatible: power = acceleration magnitude.
+    
+    const ax = Math.cos(this.body.angle) * power;
+    const ay = Math.sin(this.body.angle) * power;
+
+    this.body.vx += ax * dt;
+    this.body.vy += ay * dt;
+
+    // Fuel Consumption: proportional to power
+    // Arbitrary factor: 0.5 fuel per unit of power-time?
+    this.consumeFuel(power * 0.5 * dt);
+
+    // Particles
+    if (spawnParticles) {
+      const exhaustX = this.body.x - Math.cos(this.body.angle) * 2;
+      const exhaustY = this.body.y - Math.sin(this.body.angle) * 2;
+      spawnParticles(exhaustX, exhaustY, '#fbbf24', 2, 0.5);
     }
   }
 
@@ -53,7 +91,7 @@ export class MissionControl {
 
     if (!homeBody) {
       this.missionLog.push("ERR: No Planet Found");
-      return;
+      return false;
     }
 
     // 2. Identify Dominant Body (The Sun)
@@ -93,6 +131,7 @@ export class MissionControl {
 
     this.targetAlt = plannedAlt;
     this.homeBodyId = homeBody.id; // Lock to this body
+    return true;
   }
 
   update(dt, bodies, keys, spawnParticles, timeScaleRef) {
@@ -143,20 +182,12 @@ export class MissionControl {
 
     if (this.fuel > 0) {
       // --- VARIABLE MASS ---
-      // Base mass (empty) + Fuel mass
-      const dryMass = 1;
-      const fuelMass = this.fuel * 0.02; // 100 fuel = 2 mass
-      this.body.mass = dryMass + fuelMass;
+      // Ensure mass is sync (should be handled by consumeFuel, but init check)
+      if (this.body.mass === 1) this.updateMass(); // Fix initial mass if default
 
       // --- MANUAL CONTROL ---
       if (keys['w']) {
-        this.thrusting = true;
-        const thrustPower = 0.2;
-        this.body.vx += Math.cos(this.body.angle) * thrustPower * dt;
-        this.body.vy += Math.sin(this.body.angle) * thrustPower * dt;
-        this.body.vx += Math.cos(this.body.angle) * thrustPower * dt;
-        this.body.vy += Math.sin(this.body.angle) * thrustPower * dt;
-        this.consumeFuel(0.1 * dt);
+        this.applyThrust(0.2, dt, spawnParticles);
       } else if (keys['s']) {
         // Retrograde / Brake? Or just cut throttle
         this.thrusting = false;
@@ -421,22 +452,11 @@ export class MissionControl {
           this.body.angle += diff * 0.02; // Heavy, slow turning
 
           if (thrust > 0) {
-            // Apply Thrust
-            if (thrust > 0 && this.fuel > 0) {
-              this.thrusting = true;
-              this.body.vx += Math.cos(this.body.angle) * thrust * dt;
-              this.body.vy += Math.sin(this.body.angle) * thrust * dt;
-              this.consumeFuel(thrust * 0.5 * dt); // Autopilot consumption
-              
-              // Particles
-              const exhaustX = this.body.x - Math.cos(this.body.angle) * 2;
-              const exhaustY = this.body.y - Math.sin(this.body.angle) * 2;
-              spawnParticles(exhaustX, exhaustY, '#fbbf24', 2, 0.5);
-            } else {
-              this.thrusting = false;
-            }
+            // Apply Thrust via centralized method
+             this.applyThrust(thrust, dt, spawnParticles);
           } else {
-            this.thrusting = false;
+            // Ensure thrusting is off if autopilot demands 0
+            if (!manualInput) this.thrusting = false;
           }
         }
       }

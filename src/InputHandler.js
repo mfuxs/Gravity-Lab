@@ -13,11 +13,15 @@ export class InputHandler {
     this.handleKeyDown = this.handleKeyDown.bind(this);
     this.handleKeyUp = this.handleKeyUp.bind(this);
     this.handleContextMenu = this.handleContextMenu.bind(this);
+
+    // Create bound event wrappers for events that need argument transformation
+    this.onMouseDown = (e) => this.handleStart(e.offsetX, e.offsetY, e.button === 2);
+    this.onMouseMove = (e) => this.handleMove(e.offsetX, e.offsetY);
   }
 
   attach() {
-    this.canvas.addEventListener('mousedown', (e) => this.handleStart(e.offsetX, e.offsetY, e.button === 2));
-    this.canvas.addEventListener('mousemove', (e) => this.handleMove(e.offsetX, e.offsetY));
+    this.canvas.addEventListener('mousedown', this.onMouseDown);
+    this.canvas.addEventListener('mousemove', this.onMouseMove);
     window.addEventListener('mouseup', this.handleEnd);
     this.canvas.addEventListener('wheel', this.handleWheel, { passive: false });
     this.canvas.addEventListener('contextmenu', this.handleContextMenu);
@@ -26,8 +30,8 @@ export class InputHandler {
   }
 
   detach() {
-    this.canvas.removeEventListener('mousedown', (e) => this.handleStart(e.offsetX, e.offsetY, e.button === 2));
-    this.canvas.removeEventListener('mousemove', (e) => this.handleMove(e.offsetX, e.offsetY));
+    this.canvas.removeEventListener('mousedown', this.onMouseDown);
+    this.canvas.removeEventListener('mousemove', this.onMouseMove);
     window.removeEventListener('mouseup', this.handleEnd);
     this.canvas.removeEventListener('wheel', this.handleWheel);
     this.canvas.removeEventListener('contextmenu', this.handleContextMenu);

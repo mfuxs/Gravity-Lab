@@ -6,6 +6,8 @@ export const G = 0.8;
 export const SOFTENING = 5;
 export const TRAIL_LENGTH = 120;
 export const PHYSICS_SUBSTEPS = 8;
+export const MAX_SPEED = 1000; // Speed limit to prevent tunneling
+export const MAX_FORCE = 5000; // Force limit to prevent singularities
 
 // --- Classes ---
 export class Particle {
@@ -27,7 +29,8 @@ export class Body {
     this.id = Math.random().toString(36).substr(2, 9);
     this.name = name;
     this.x = x; this.y = y; this.vx = vx; this.vy = vy;
-    this.mass = mass; this.type = type;
+    this.mass = Math.max(0.1, mass); // Prevent zero or negative mass
+    this.type = type;
 
     if (type === 'blackhole') this.radius = Math.sqrt(mass);
     else if (type === 'whitedwarf') this.radius = Math.sqrt(mass) * 0.6;
@@ -283,7 +286,11 @@ export const physicsStep = (dt, bodies, config, spawnParticles, keys, timeScaleR
         const distSq = dx * dx + dy * dy; const dist = Math.sqrt(distSq);
 
         if (dist > 0.1 && dist > b1.radius + b2.radius) {
-          const f = (G * b1.mass * b2.mass) / (distSq + SOFTENING);
+          let f = (G * b1.mass * b2.mass) / (distSq + SOFTENING);
+          
+          // Force Clamping
+          f = Math.min(f, MAX_FORCE);
+
           const fx = f * (dx / dist); const fy = f * (dy / dist);
           if (!b1.isStatic) { b1.vx += (fx / b1.mass) * dt; b1.vy += (fy / b1.mass) * dt; }
           if (!b2.isStatic) { b2.vx -= (fx / b2.mass) * dt; b2.vy -= (fy / b2.mass) * dt; }
@@ -291,5 +298,26 @@ export const physicsStep = (dt, bodies, config, spawnParticles, keys, timeScaleR
       }
     }
   }
+  
+  // Governance: NaN Check & Velocity Clamping
+  for (let i = bodies.length - 1; i >= 0; i--) {
+    const b = bodies[i];
+    
+    // NaN Check
+    if (isNaN(b.x) || isNaN(b.y) || isNaN(b.vx) || isNaN(b.vy)) {
+      console.warn(`Physics Governance: Removing corrupted body ${b.id}`);
+      bodies.splice(i, 1);
+      continue;
+    }
+
+    // Velocity Clamping
+    const speedSq = b.vx * b.vx + b.vy * b.vy;
+    if (speedSq > MAX_SPEED * MAX_SPEED) {
+      const speed = Math.sqrt(speedSq);
+      b.vx = (b.vx / speed) * MAX_SPEED;
+      b.vy = (b.vy / speed) * MAX_SPEED;
+    }
+  }
+
   for (let b of bodies) b.update(dt, bodies, spawnParticles, keys, timeScaleRef);
 };

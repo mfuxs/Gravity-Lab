@@ -1,10 +1,10 @@
 # Projekt Roadmap & TODOs
 
 ## Priorität 0 – Stabilisierung & Sicherheit
-- [ ] **Input-Handling härten (S)**: Event-Listener ohne anonyme Funktionen registrieren, `detach` reparieren und Pointer-/Keyboard-States gegen Leaks und Race-Conditions absichern; automatisierte Tests ergänzen.
-- [ ] **Renderer entlasten (M)**: Orbit-Vorschau aus dem Render-Loop auslagern (Worker oder Memoization), Schrittanzahl konfigurierbar machen und Fallback bei vielen Bodies einführen, damit Frames nicht blockieren.
-- [ ] **Missions-Autopilot robust machen (M)**: Schutz vor fehlenden Zielkörpern/Planetendaten, doppelte Schub-Anwendung entfernen, Treibstoff-/Massenmodell zentralisieren und Logs/Fehlerzustände für HUD bereitstellen.
-- [ ] **Physik-Governance (M)**: Quadtree- bzw. N-Body-Schritte gegen entgrenzte Werte absichern (NaN/Infinity-Watchdog, Softening-/Zeitschritt-Konfiguration), Validierung bei Body-Erzeugung und Kollisionen einziehen.
+- [x] **Input-Handling härten (S)**: Event-Listener ohne anonyme Funktionen registrieren, `detach` reparieren und Pointer-/Keyboard-States gegen Leaks und Race-Conditions absichern; automatisierte Tests ergänzen.
+- [x] **Renderer entlasten (M)**: Orbit-Vorschau aus dem Render-Loop auslagern (Worker oder Memoization), Schrittanzahl konfigurierbar machen und Fallback bei vielen Bodies einführen, damit Frames nicht blockieren.
+- [x] **Missions-Autopilot robust machen (M)**: Schutz vor fehlenden Zielkörpern/Planetendaten, doppelte Schub-Anwendung entfernen, Treibstoff-/Massenmodell zentralisieren und Logs/Fehlerzustände für HUD bereitstellen.
+- [x] **Physik-Governance (M)**: Quadtree- bzw. N-Body-Schritte gegen entgrenzte Werte absichern (NaN/Infinity-Watchdog, Softening-/Zeitschritt-Konfiguration), Validierung bei Body-Erzeugung und Kollisionen einziehen.
 
 ## Priorität 1 – Architektur, Wartbarkeit & Tests
 - [ ] **GravitySimV10 zerlegen (L)**: Rendering-/Physik-Schleife, UI/Overlay-Logik, Missions-Flow und Scenario-Management in eigene Hooks/Module trennen; gemeinsame Konstanten/Konfiguration extrahieren.

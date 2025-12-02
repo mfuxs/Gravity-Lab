@@ -33,5 +33,21 @@ describe('PhysicsEngine', () => {
       expect(b1.vx).toBeGreaterThan(0);
       expect(b2.vx).toBeLessThan(0);
     });
+
+    it('should clamp maximum velocity', () => {
+      const b = new Body(0, 0, 2000, 0, 10, '#fff', 'rocket'); // Speed 2000 > MAX_SPEED 1000
+      const bodies = [b];
+      physicsStep(1, bodies, { highPrecision: true }, () => {}, {}, { current: 1 });
+      
+      expect(b.vx).toBe(1000); // Should be clamped
+    });
+
+    it('should remove bodies with NaN positions', () => {
+      const b = new Body(NaN, 0, 0, 0, 10, '#fff', 'rocket');
+      const bodies = [b];
+      physicsStep(1, bodies, { highPrecision: true }, () => {}, {}, { current: 1 });
+      
+      expect(bodies.length).toBe(0);
+    });
   });
 });

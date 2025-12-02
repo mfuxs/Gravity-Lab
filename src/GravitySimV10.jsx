@@ -72,6 +72,10 @@ const GravitySimV10 = () => {
   const historyIndexRef = useRef(-1); // Current position in history
   const timeAccumulatorRef = useRef(0); // For fractional time steps
 
+  // Worker Ref
+  const orbitWorkerRef = useRef(null);
+  const orbitPathsRef = useRef([]);
+
 
 
   // Achievement Definitions
@@ -106,6 +110,45 @@ const GravitySimV10 = () => {
     };
     if (tool === 'lagrange_pilot') setShowLagrange(true);
   }, [isRunning, showOrbitPreview, showLagrange, tool, unlockedAchievements, highPrecision, showVectors, showHillSpheres, showOrbitPaths]);
+
+  // --- Worker Initialization ---
+  useEffect(() => {
+    orbitWorkerRef.current = new Worker(new URL('./orbitWorker.js', import.meta.url));
+
+    orbitWorkerRef.current.onmessage = (e) => {
+      orbitPathsRef.current = e.data.paths;
+    };
+
+    return () => {
+      orbitWorkerRef.current.terminate();
+    };
+  }, []);
+
+  // Send data to worker
+  useEffect(() => {
+    if (!configRef.current.showOrbitPaths) return;
+
+    const interval = setInterval(() => {
+      if (orbitWorkerRef.current && bodiesRef.current.length > 0) {
+        // Prepare data (only necessary props)
+        const bodiesData = bodiesRef.current
+          .filter(b => b.mass > 1) // Optimization: Ignore tiny particles
+          .map(b => ({
+            x: b.x, y: b.y, vx: b.vx, vy: b.vy,
+            mass: b.mass, radius: b.radius,
+            isStatic: b.isStatic, id: b.id, color: b.color
+          }));
+
+        orbitWorkerRef.current.postMessage({
+          bodies: bodiesData,
+          steps: 500,
+          dt: 1.0
+        });
+      }
+    }, 100); // Update 10 times per second (throttled)
+
+    return () => clearInterval(interval);
+  }, [showOrbitPaths]);
 
   // Handle Scenario Loading
   useEffect(() => {
@@ -381,7 +424,8 @@ const GravitySimV10 = () => {
         locked: !!cameraTargetRef.current,
         phase: activeRocket.missionPhase,
         logs: activeRocket.missionLog,
-        fuel: activeRocket.controller ? activeRocket.controller.fuel : 0,
+        logs: activeRocket.missionLog,
+        // fuel: activeRocket.controller ? activeRocket.controller.fuel : 0, // Already set above
         deltaV: activeRocket.controller ? Math.round(activeRocket.controller.deltaV) : 0
       });
     } else {
@@ -424,7 +468,8 @@ const GravitySimV10 = () => {
 
     Renderer.render(
       canvas, ctx, bodiesRef.current, particlesRef.current, viewRef.current,
-      configRef.current, dragRef.current, missionState, missionConfig, configRef.current.tool
+      configRef.current, dragRef.current, missionState, missionConfig, configRef.current.tool,
+      orbitPathsRef.current // Pass worker paths
     );
   };
 

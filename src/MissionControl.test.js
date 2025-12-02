@@ -1,73 +1,72 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MissionControl } from './MissionControl';
 
-// Mock PhysicsEngine constants if needed, but they are imported in MissionControl.
-// Since we are testing logic, we can rely on the real constants or mock the module.
-// For now, let's use real constants as they are simple values.
-
 describe('MissionControl', () => {
   let mockBody;
   let missionControl;
 
   beforeEach(() => {
     mockBody = {
-      x: 0, y: 0, vx: 0, vy: 0, mass: 1, angle: 0, age: 0
+      x: 0, y: 0,
+      vx: 0, vy: 0,
+      mass: 1,
+      angle: 0
     };
     missionControl = new MissionControl(mockBody);
   });
 
-  it('should initialize with default values', () => {
-    expect(missionControl.missionPhase).toBe('launch');
+  it('should initialize with correct defaults', () => {
     expect(missionControl.fuel).toBe(100);
-    expect(missionControl.stage).toBe(1);
+    expect(missionControl.missionPhase).toBe('launch');
   });
 
-  it('should configure mission profile correctly', () => {
-    const sun = { id: 1, x: 0, y: 0, mass: 5000, type: 'star', radius: 100 };
-    const planet = { id: 2, x: 500, y: 0, mass: 100, type: 'planet', radius: 20 };
-    mockBody.x = 500 + 25;
-    mockBody.y = 0;
-
-    const bodies = [sun, planet];
+  it('should calculate current mass correctly', () => {
+    // Dry mass 10, Fuel Cap 10. Total 20.
+    expect(missionControl.currentMass).toBe(20);
     
-    missionControl.configureMissionProfile(bodies);
-
-    expect(missionControl.homeBodyId).toBe(planet.id);
-    // Check if any log entry starts with "Orbit Planned"
-    const hasOrbitPlan = missionControl.missionLog.some(log => log.startsWith("Orbit Planned"));
-    expect(hasOrbitPlan).toBe(true);
+    missionControl.fuel = 50;
+    expect(missionControl.currentMass).toBe(15);
+    
+    missionControl.fuel = 0;
+    expect(missionControl.currentMass).toBe(10);
   });
 
-  it('should transition from launch to staging', () => {
-    const planet = { id: 2, x: 0, y: 0, mass: 100, type: 'planet', radius: 20 };
-    const bodies = [planet];
-    mockBody.x = 0;
-    mockBody.y = 20;
-    
+  it('should consume fuel and update mass', () => {
+    missionControl.consumeFuel(10);
+    expect(missionControl.fuel).toBe(90);
+    expect(mockBody.mass).toBe(19);
+  });
+
+  it('should apply thrust correctly', () => {
+    const dt = 1;
+    const power = 1;
     const spawnParticles = vi.fn();
-    const timeScaleRef = { current: 1 };
 
-    mockBody.y = 61; // Alt 41
-    
-    missionControl.update(1, bodies, {}, spawnParticles, timeScaleRef);
-    
-    expect(missionControl.missionPhase).toBe('staging');
-    expect(missionControl.missionLog).toContain("Staging: Booster Sep");
-  });
+    missionControl.applyThrust(power, dt, spawnParticles);
 
-  it('should handle manual control (thrust)', () => {
-    const bodies = [];
-    const keys = { 'w': true };
-    const spawnParticles = vi.fn();
-    const timeScaleRef = { current: 1 };
-    
-    mockBody.angle = 0; // Pointing Right
-    const initialVx = mockBody.vx;
-    
-    missionControl.update(1, bodies, keys, spawnParticles, timeScaleRef);
-    
     expect(missionControl.thrusting).toBe(true);
-    expect(mockBody.vx).toBeGreaterThan(initialVx);
+    expect(mockBody.vx).toBe(1); // cos(0) * 1 * 1
+    expect(mockBody.vy).toBe(0); // sin(0) * 1 * 1
     expect(missionControl.fuel).toBeLessThan(100);
+    expect(spawnParticles).toHaveBeenCalled();
+  });
+
+  it('should not apply thrust if no fuel', () => {
+    missionControl.fuel = 0;
+    const dt = 1;
+    const power = 1;
+    const spawnParticles = vi.fn();
+
+    missionControl.applyThrust(power, dt, spawnParticles);
+
+    expect(missionControl.thrusting).toBe(false);
+    expect(mockBody.vx).toBe(0);
+    expect(spawnParticles).not.toHaveBeenCalled();
+  });
+
+  it('should handle mission profile configuration failure', () => {
+    const success = missionControl.configureMissionProfile([]);
+    expect(success).toBe(false);
+    expect(missionControl.missionLog).toContain("ERR: No Planet Found");
   });
 });

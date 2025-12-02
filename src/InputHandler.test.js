@@ -47,4 +47,18 @@ describe('InputHandler', () => {
     
     expect(callbacks.updateView).toHaveBeenCalledWith({ x: 10, y: 10, zoom: 1 });
   });
+
+  it('should detach event listeners', () => {
+    inputHandler.detach();
+    
+    // Try to start drag after detach
+    const event = new MouseEvent('mousedown', { button: 0, clientX: 100, clientY: 100 });
+    Object.defineProperty(event, 'offsetX', { value: 100 });
+    Object.defineProperty(event, 'offsetY', { value: 100 });
+    
+    canvas.dispatchEvent(event);
+    
+    expect(inputHandler.drag.isDragging).toBe(false);
+    expect(callbacks.updateDrag).not.toHaveBeenCalled();
+  });
 });
