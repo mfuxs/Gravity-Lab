@@ -67,7 +67,9 @@
     - [x] **Shadow Simulation**: Implementierung einer Sonnenlicht-Simulation, die bei Bedarf eingeschaltet werden kann (Schattenkegel). 
     - [x] **kern schatten simulation**: erweiter die schatten simulation mit kernschatten und schatten der objekte. Pass eventruell auch die abstände bei dem sonnenfinsternis zenario an, so dass die objekte nicht zu nah an der sonne platziert werden und es realistische verhältnisse gibt.
     - [x] **Geschwindikeits kontrolle ** : man soll die simulation nicht nur stopen, schneller machen können sondern auch langsamer machen. 
-    - [x] ** vor und zurück**: man soll die simulation auch vor und zurück laufen lassen. Der scheibe regeler, der grade die geschwindigkeit steuert, soll die simulation vor und zurück laufen lassen.    
+    - [x] ** vor und zurück**: man soll die simulation auch vor und zurück laufen lassen. Der scheibe regeler, der grade die geschwindigkeit steuert, soll die simulation vor und zurück laufen lassen. 
+    - [/] ** Fokus button ** : wenn man den drückt wird man auf das objekt fokussiert was entweder die meiste masse hat oder das obejt was am zentrum platziert ist. <!-- id: 5 -->
+    - [/] ** Move button ** : wenn man den drückt, sollen keine objekte mehr plaziert werden und man kann mit linkeklick und zihene die karte verscheiben. <!-- id: 6 --> 
 
 ## 🚀 Priorität 3: Raketen & Missionen (Vertiefung)
 - [ ] **Treibstoff & Delta-v**: Anzeige von Delta-v Budget im HUD. Begrenzter Treibstoff mit Nachfüll-Möglichkeit (Cheat/Station).

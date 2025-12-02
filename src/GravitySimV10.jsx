@@ -428,6 +428,30 @@ const GravitySimV10 = () => {
     );
   };
 
+  const handleFocus = () => {
+    // 1. Try to find the heaviest object (Star/Blackhole)
+    let target = bodiesRef.current.reduce((prev, current) => {
+      return (prev.mass > current.mass) ? prev : current;
+    }, bodiesRef.current[0]);
+
+    // 2. If no bodies, or we want to prioritize center if multiple stars?
+    // For now, heaviest is good.
+
+    // 3. Alternatively, find object closest to 0,0 if masses are equal?
+    if (!target && bodiesRef.current.length > 0) target = bodiesRef.current[0];
+
+    if (target) {
+      cameraTargetRef.current = target;
+      // Optional: Zoom in/out to fit?
+      // viewRef.current.zoom = 0.5; 
+    } else {
+      // Reset to center if no bodies
+      viewRef.current.x = canvasRef.current.width / 2;
+      viewRef.current.y = canvasRef.current.height / 2;
+      cameraTargetRef.current = null;
+    }
+  };
+
   const tick = () => {
     if (configRef.current.isRunning && !isPaused) physicsLoop();
     renderLoop();
@@ -942,24 +966,17 @@ const GravitySimV10 = () => {
 
       {/* Toolbar */}
       <Toolbar
-        tool={tool}
-        setTool={setTool}
-        highPrecision={highPrecision}
-        setHighPrecision={setHighPrecision}
-        showOrbitPreview={showOrbitPreview}
-        setShowOrbitPreview={setShowOrbitPreview}
-        showLagrange={showLagrange}
-        setShowLagrange={setShowLagrange}
+        tool={tool} setTool={setTool}
+        highPrecision={highPrecision} setHighPrecision={setHighPrecision}
+        showOrbitPreview={showOrbitPreview} setShowOrbitPreview={setShowOrbitPreview}
+        showLagrange={showLagrange} setShowLagrange={setShowLagrange}
         unlockedAchievements={unlockedAchievements}
-        showVectors={showVectors}
-        toggleShowVectors={toggleShowVectors}
-        showHillSpheres={showHillSpheres}
-        toggleShowHillSpheres={toggleShowHillSpheres}
-        showOrbitPaths={showOrbitPaths}
-        toggleShowOrbitPaths={toggleShowOrbitPaths}
-        showShadows={showShadows}
-        toggleShowShadows={toggleShowShadows}
+        showVectors={showVectors} toggleShowVectors={toggleShowVectors}
+        showHillSpheres={showHillSpheres} toggleShowHillSpheres={toggleShowHillSpheres}
+        showOrbitPaths={showOrbitPaths} toggleShowOrbitPaths={toggleShowOrbitPaths}
+        showShadows={showShadows} toggleShowShadows={toggleShowShadows}
         isOpen={isToolbarOpen}
+        onFocus={handleFocus}
       />
 
       {/* Time Controls */}

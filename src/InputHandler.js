@@ -18,7 +18,7 @@ export class InputHandler {
   attach() {
     this.canvas.addEventListener('mousedown', (e) => this.handleStart(e.offsetX, e.offsetY, e.button === 2));
     this.canvas.addEventListener('mousemove', (e) => this.handleMove(e.offsetX, e.offsetY));
-    this.canvas.addEventListener('mouseup', this.handleEnd);
+    window.addEventListener('mouseup', this.handleEnd);
     this.canvas.addEventListener('wheel', this.handleWheel, { passive: false });
     this.canvas.addEventListener('contextmenu', this.handleContextMenu);
     window.addEventListener('keydown', this.handleKeyDown);
@@ -28,7 +28,7 @@ export class InputHandler {
   detach() {
     this.canvas.removeEventListener('mousedown', (e) => this.handleStart(e.offsetX, e.offsetY, e.button === 2));
     this.canvas.removeEventListener('mousemove', (e) => this.handleMove(e.offsetX, e.offsetY));
-    this.canvas.removeEventListener('mouseup', this.handleEnd);
+    window.removeEventListener('mouseup', this.handleEnd);
     this.canvas.removeEventListener('wheel', this.handleWheel);
     this.canvas.removeEventListener('contextmenu', this.handleContextMenu);
     window.removeEventListener('keydown', this.handleKeyDown);
@@ -42,8 +42,23 @@ export class InputHandler {
   handleStart(x, y, isRightClick) {
     const { tool, view, bodies } = this.callbacks.getState();
     
-    if (isRightClick) {
-      this.drag = { isDragging: true, startX: x, startY: y, currentX: x, currentY: y, dragType: 'pan' };
+    // Check if we are currently in a persistent drag (Move tool only)
+    if (tool === 'move' && this.drag.isDragging) {
+        this.drag.isDragging = false;
+        this.drag.isPersistent = false;
+        this.callbacks.updateDrag(this.drag);
+        return;
+    }
+
+    if (isRightClick || tool === 'move') {
+      this.drag = { 
+        isDragging: true, 
+        startX: x, startY: y, 
+        currentX: x, currentY: y, 
+        dragType: 'pan',
+        startTime: Date.now(),
+        isPersistent: false
+      };
     } else {
       // Check for clickable objects first (like planets in mission planner)
       // But for now, we just start a 'create' drag or 'pan' depending on tool
@@ -58,12 +73,11 @@ export class InputHandler {
       // Just update current mouse position for hover effects
       this.drag.currentX = x;
       this.drag.currentY = y;
-      this.callbacks.updateDrag({ ...this.drag }); // Update ref without full state update if possible? 
-      // Actually GravitySim uses a ref for drag, so we can just mutate it?
-      // But we need to trigger re-renders for some things.
-      // The original code updated dragRef.current directly.
+      this.callbacks.updateDrag({ ...this.drag }); 
       return;
     }
+
+    // console.log('handleMove dragging', { x, y }); // Too noisy
 
     const { view } = this.callbacks.getState();
 
@@ -88,13 +102,23 @@ export class InputHandler {
     const { x: panX, y: panY, zoom } = view;
 
     if (this.drag.dragType === 'create') {
-      // Delegate creation logic to callback to keep InputHandler generic?
-      // Or keep it here? The plan said "InputHandler class... handleStart... handleEnd".
-      // To keep it clean, let's pass the drag data to a "onDragEnd" callback.
       this.callbacks.onDragEnd(this.drag);
+    } else if (this.drag.dragType === 'pan') {
+        const duration = Date.now() - this.drag.startTime;
+        const dist = Math.hypot(this.drag.startX - this.drag.currentX, this.drag.startY - this.drag.currentY);
+        
+        // If it was a quick click (and we are in move tool), stay in drag mode (Persistent)
+        // Thresholds: < 200ms and < 5px movement
+        if (tool === 'move' && duration < 200 && dist < 5) {
+            this.drag.isPersistent = true;
+            // Do NOT set isDragging to false
+            this.callbacks.updateDrag(this.drag);
+            return; 
+        }
     }
 
     this.drag.isDragging = false;
+    this.drag.isPersistent = false;
     this.callbacks.updateDrag(this.drag);
   }
 
