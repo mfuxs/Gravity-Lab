@@ -1,16 +1,69 @@
-# React + Vite
+# Interaktive Gravitation- und Orbital-Simulation
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Eine interaktive Web-Anwendung zur Simulation von Gravitationsfeldern und Orbitalmechanik im Browser. Dieses Projekt ermöglicht es Benutzern, die Auswirkungen der Schwerkraft auf Himmelskörper visuell zu erforschen und Raumfahrtmissionen zu planen.
 
-Currently, two official plugins are available:
+## 🚀 Projektziel
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Die Web-App zeigt in einer zweidimensionalen Ansicht, wie sich Gravitationsfelder verschiedener Himmelskörper gegenseitig beeinflussen. Nutzer erhalten ein intuitives Gefühl für Schwerkraft, Orbitalmechanik und Raumfahrtmissionen, ohne tiefgehendes Vorwissen zu benötigen.
 
-## React Compiler
+## ✨ Kernfunktionen
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+*   **Interaktives Sonnensystem:** Startet mit einem referenziellen Sonnensystem (Sonne, Planeten, Monde).
+*   **Objekterstellung:** Hinzufügen von Planeten, Monden, Asteroiden, Sternen und Schwarzen Löchern mit anpassbaren Parametern (Masse, Radius, Position, Geschwindigkeit).
+*   **Realistische Physik:** Echtzeit-Berechnung der Gravitation basierend auf Newtonschem Gesetz.
+*   **Orbitalmechanik-Tools:**
+    *   **Orbitalplaner:** Vorschläge für Transferbahnen (z.B. Hohmann-Transfer).
+    *   **Lagrange-Punkte:** Visualisierung von Stabilitätszonen.
+    *   **Informationslayer:** Anzeige von Gravitationspotenzialen und Geschwindigkeitsvektoren.
+*   **Missionsplanung:** Simulation von Raketenstarts, Stufentrennung und interplanetaren Transfers.
+*   **Zeitsteuerung:** Zeitraffer und Zeitlupe zur Beobachtung langfristiger Effekte.
+*   **Zoom & Skalierung:** Stufenloser Zoom vom Raumschiff bis zur Übersicht des Sonnensystems.
 
-## Expanding the ESLint configuration
+## 🛠️ Technologien
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+*   **Frontend:** [React](https://react.dev/)
+*   **Build Tool:** [Vite](https://vitejs.dev/)
+*   **Styling:** [Tailwind CSS](https://tailwindcss.com/)
+*   **State Management:** [Zustand](https://github.com/pmndrs/zustand)
+*   **Icons:** [Lucide React](https://lucide.dev/)
+*   **Testing:** [Vitest](https://vitest.dev/) & [React Testing Library](https://testing-library.com/)
+
+## 📦 Installation & Nutzung
+
+Voraussetzung: [Node.js](https://nodejs.org/) ist installiert.
+
+1.  **Repository klonen:**
+    ```bash
+    git clone https://github.com/mfuxs/Gravity-Lab.git
+    cd Gravity-Lab
+    ```
+
+2.  **Abhängigkeiten installieren:**
+    ```bash
+    npm install
+    ```
+
+3.  **Entwicklungsserver starten:**
+    ```bash
+    npm run dev
+    ```
+    Die App ist nun unter `http://localhost:5173` erreichbar.
+
+4.  **Projekt bauen:**
+    ```bash
+    npm run build
+    ```
+
+## 🧪 Tests
+
+Tests werden mit Vitest ausgeführt:
+
+```bash
+npm run test
+```
+
+## 🎯 Lernziele
+
+*   Verständnis für den Einfluss von Masse, Abstand und Geschwindigkeit auf Orbits.
+*   Erkenntnisse über stabile Umlaufbahnen und Störungen.
+*   Grundlagen der Raumfahrt: Fluchtgeschwindigkeit, Hohmann-Transfer, Lagrange-Punkte.
