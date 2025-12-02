@@ -1,7 +1,7 @@
 import React from 'react';
 import {
     MousePointer2, Move, Sun, Circle, Disc, Rocket,
-    CircleDot, Crosshair, Target, Activity, Zap, Repeat, Star, Anchor, Eclipse
+    CircleDot, Crosshair, Target, Activity, Zap, Repeat, Star, Anchor, Eclipse, Hand
 } from 'lucide-react';
 
 export const Toolbar = ({
@@ -15,12 +15,14 @@ export const Toolbar = ({
     showHillSpheres, toggleShowHillSpheres,
     showOrbitPaths, toggleShowOrbitPaths,
     showShadows, toggleShowShadows,
-    isOpen // New prop
+
+    isOpen, // New prop
+    onFocus // New prop
 }) => {
 
     const tools = [
         { id: 'select', icon: MousePointer2, label: 'Select' },
-        { id: 'drag', icon: Move, label: 'Move' },
+        { id: 'move', icon: Hand, label: 'Move' },
         { id: 'sun_system', icon: Sun, label: 'Sonne' },
         { id: 'binary', icon: Repeat, label: 'Binär' },
         { id: 'planet', icon: Circle, label: 'Planet' },
@@ -86,6 +88,14 @@ export const Toolbar = ({
                 >
                     <Crosshair size={14} />
                     <span>Lagrange Pilot</span>
+                </button>
+
+                <button
+                    onClick={onFocus}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all text-slate-400 hover:bg-slate-800 hover:text-white"
+                >
+                    <Target size={14} />
+                    <span>Fokus</span>
                 </button>
 
                 <div className="h-px bg-slate-700 my-1"></div>
