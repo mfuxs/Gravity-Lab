@@ -1,88 +1,24 @@
 # Projekt Roadmap & TODOs
-## Anweisungen für die ToDos
-- Wenn ein ToDO zu groß für ein Druchlauf ist, teil es in kleinere ToDos auf.
-- 
 
-## 🚨 Priorität 0: Bugfixes & Akute Probleme
-- [x] **Orbit Planer Validierung**: Prüfe den Orbit Planer auf Fehler bei bewegten Objekten.
-- [x] **Kollisions-Warnung**: Färbe den Orbit-Pfad rot, wenn eine Kollision vorausberechnet wird.
-- [x] **Performance**: Optimierung der Physik-Loop (Spatial Partitioning oder WebWorker), da O(N^2) bei vielen Objekten (>500) laggt.
+## Priorität 0 – Stabilisierung & Sicherheit
+- [ ] **Input-Handling härten (S)**: Event-Listener ohne anonyme Funktionen registrieren, `detach` reparieren und Pointer-/Keyboard-States gegen Leaks und Race-Conditions absichern; automatisierte Tests ergänzen.
+- [ ] **Renderer entlasten (M)**: Orbit-Vorschau aus dem Render-Loop auslagern (Worker oder Memoization), Schrittanzahl konfigurierbar machen und Fallback bei vielen Bodies einführen, damit Frames nicht blockieren.
+- [ ] **Missions-Autopilot robust machen (M)**: Schutz vor fehlenden Zielkörpern/Planetendaten, doppelte Schub-Anwendung entfernen, Treibstoff-/Massenmodell zentralisieren und Logs/Fehlerzustände für HUD bereitstellen.
+- [ ] **Physik-Governance (M)**: Quadtree- bzw. N-Body-Schritte gegen entgrenzte Werte absichern (NaN/Infinity-Watchdog, Softening-/Zeitschritt-Konfiguration), Validierung bei Body-Erzeugung und Kollisionen einziehen.
 
-## 🏗️ Priorität 1: Architektur & Refactoring (Dringend!)
-- [ ] **Monolith aufbrechen**: `GravitySimV10.jsx` (>1700 Zeilen) muss zerlegt werden.
-    - [x] `PhysicsEngine.js`: Auslagerung von `Body`, `Particle` und `physicsStep`.
-    - [x] `Renderer.js`: Canvas-Zeichnungslogik auslagern.
-    - [x] `InputHandler.js`: Maus- und Tastatur-Logik trennen.
-    - [x] `MissionControl.js`: Die gesamte Raketen-Autopilot-Logik isolieren.
-- [x] **State Management**: Einführung eines Contexts oder Stores (z.B. Zustand) für den Simulations-Status, um Prop-Drilling zu vermeiden.
-- [x] **Testing**: Implementierung von Unit-Tests für die wichtigsten Funktionen.
-    - [x] `index.css`: Test der CSS-Styles.
-    - [x] Analyse welche testes Wichtig sind um die Funktonisweise der ausfürlich zu testen und schreiben der nötigen Tests in die TODOs und Testing.
-    - [x] `PhysicsEngine.js`: Test der Berechnungen.
-    - [ ] `Renderer.js`: Test der Zeichnungslogik.
-    - [x] `InputHandler.js`: Test der Interaktion.
-    - [x] `MissionControl.js`: Test der Autopilot-Logik.
-    - [ ] `GravitySimV10.jsx`: Test der Simulationslogik.
-    - [ ] `ausführliche Analyse ob alle wichtigen Funktionen getestet sind und ob die TODOs und Testing genügend sind.
+## Priorität 1 – Architektur, Wartbarkeit & Tests
+- [ ] **GravitySimV10 zerlegen (L)**: Rendering-/Physik-Schleife, UI/Overlay-Logik, Missions-Flow und Scenario-Management in eigene Hooks/Module trennen; gemeinsame Konstanten/Konfiguration extrahieren.
+- [ ] **Typisierung & Verträge (M)**: PropTypes oder TypeScript für Komponenten (Toolbar, MissionHUD, ObjectInspector, TimeControls) und Datenstrukturen (Bodies, Scenarios, Store-State) ergänzen; Eingabewerte validieren.
+- [ ] **Beobachtbarkeit & Fehlertoleranz (M)**: Logging/Telemetry für kritische Events (Kollision, Autopilot, Scenario-Load), Error-Boundary um Simulationsansicht sowie UI-States für Lade-/Fehlerfälle einführen.
+- [ ] **Testabdeckung ausbauen (M)**: Renderer (Orbit-/Shadow-Layer), GravitySim-Interaktionen (Toolwechsel, Scenario-Load), MissionControl-Phasen, TimeControls-Slider und Store-Actions mit Unit-/Integration-Tests abdecken.
+- [ ] **Style-/Layout-Aufräumung (S)**: Veraltetes `App.css` entfernen oder durch globale Layout-Regeln ersetzen, Tailwind-Basis vereinheitlichen und z-Index/Responsiveness dokumentieren.
 
-## 🌟 Priorität 2: Fehlende Kern-Features (lt. Projekt.md)
-### Interaktion & Werkzeuge
-- [x] **Objekt-Inspektor**: Klick auf ein Objekt öffnet ein Panel mit Details (Masse, Radius, Geschw., Position).
-    - [x] Editierbare Werte: Ermögliche das Ändern von Masse/Geschwindigkeit zur Laufzeit.
-- [x] **Zeit-Steuerung (Time Warp)**: Slider für Simulationsgeschwindigkeit (0.1x bis 100x) statt nur "High Precision".
-- [x] **Informations-Layer**:
-    - [x] Geschwindigkeitsvektoren einblenden.
-    - [x] Hill-Sphären / Einflusssphären visualisieren.
-    - [ ] Gravitations-Potential (optional als Heatmap).
-    - [x] **Globale Orbit-Vorschau**: Toggle, der die vorausberechneten Bahnen *aller* Objekte anzeigt (nicht nur beim Erstellen).
+## Priorität 2 – Features & Nutzererlebnis
+- [ ] **Maßstabs-/Einheitenanzeige (M)**: Dynamische Skala passend zum Zoom und konsistente Einheiten im HUD.
+- [ ] **Zustände speichern/laden (M)**: Szenarien und Benutzer-Setups als JSON exportieren/importieren, optional Auto-Save im LocalStorage.
+- [ ] **Onboarding/Tutorial (M)**: Geführter Ablauf (erste Objekte, TimeControls, Mission-Start) mit Skip-Option und Hinweis-Layer.
+- [ ] **Bedienkomfort (S)**: Tasten-Shortcuts für Tool-Wahl/Zoom/Play-Pause sowie barrierearme Fokus-States ergänzen.
 
-### Szenarien & Lerninhalte
-- [x] **Szenarien-Manager**: Menü zum Laden vordefinierter Situationen.
-    - [x] *Asteroiden-Flyby*: Setup mit Planet und vorbeifliegendem Asteroiden.
-    - [x] *Sonnenfinsternis*: Sonne-Erde-Mond Ausrichtung.
-    - [x] *Instabiles System*: 3-Körper-Problem Demo.
-- [ ] **Maßstabs-Anzeige**: Visuelle Skala (km / AU) unten rechts, die sich dem Zoom anpasst.
-
-
-### UI/UX & Immersion
-- [ ] **Analyse der jetzigen UI/UX & Implementation**:
-    - [x] Analyse durchgeführt (Screenshots & Code-Review).
-    - [x] Konsistenz geprüft: "Glassmorphism" Style ist weitgehend konsistent.
-    - [x] Überlappungen behoben: Object Inspector nach unten links verschoben.
-    - [x] UI Konsolidierung: View Settings in "Optionen" Panel integriert.
-    - [x] Header bereinigt: Doppelte Buttons entfernt.
-    - [x] Toolbar Toggle: "Werkzeuge" Button im Header implementiert.
-    - [x] Fehlende Tools: Binär, W. Zwerg, Black Hole hinzugefügt.
-    - [x] Lagrange Pilot: Toggle-Logik korrigiert.
-    - [x] UI Cleanup: Untere Toolbar entfernt.
-- [ ] **UI/UX Critical Analysis & Optimizations**:
-    - [x] **Remove Redundant Top-Right Buttons**: "Orbit Planer" and "Lagrange Punkte" are duplicated in the Toolbar. Remove the top-right container to clear the view.
-    - [x] **Fuel & Delta-v Display**: Essential for the rocket mission mode.
-    - [ ] **Onboarding/Tutorial**: A simple "Guide" mode to explain the tools.
-- [x] **Refactoring & Verbesserungen**:
-    - [x] **Toolbar Refactoring**: Extrahiere die Top-Left Buttons in `src/Toolbar.jsx`. Gruppiere Tools und Toggles logisch.
-    - [x] **Mission HUD Refactoring**: Extrahiere den Raketen-Status in `src/MissionHUD.jsx`. Verbessere das Layout (Grid statt Liste).
-    - [x] **Styling Standardisierung**: Stelle sicher, dass alle Panels (Toolbar, MissionHUD) die gleichen CSS-Klassen nutzen (`bg-slate-900/90`, `backdrop-blur-sm`, `rounded-xl`).
-    - [x] **Time Controls**: Prüfe Klickbarkeit (Z-Index) und Positionierung.
-    - [x] **Shadow Simulation**: Implementierung einer Sonnenlicht-Simulation, die bei Bedarf eingeschaltet werden kann (Schattenkegel). 
-    - [x] **kern schatten simulation**: erweiter die schatten simulation mit kernschatten und schatten der objekte. Pass eventruell auch die abstände bei dem sonnenfinsternis zenario an, so dass die objekte nicht zu nah an der sonne platziert werden und es realistische verhältnisse gibt.
-    - [x] **Geschwindikeits kontrolle ** : man soll die simulation nicht nur stopen, schneller machen können sondern auch langsamer machen. 
-    - [x] ** vor und zurück**: man soll die simulation auch vor und zurück laufen lassen. Der scheibe regeler, der grade die geschwindigkeit steuert, soll die simulation vor und zurück laufen lassen.    
-
-## 🚀 Priorität 3: Raketen & Missionen (Vertiefung)
-- [ ] **Treibstoff & Delta-v**: Anzeige von Delta-v Budget im HUD. Begrenzter Treibstoff mit Nachfüll-Möglichkeit (Cheat/Station).
-- [ ] **Startfenster-Visualisierung**: Grafische Anzeige des optimalen Startfensters (Phase Angle) im Mission Planner, nicht nur als Text im Log.
-- [ ] **Manuelle Manöver-Nodes**: Wie in KSP – Setzen eines geplanten Burns auf dem Orbit und Visualisierung der neuen Bahn (Erweiterung des Orbit Planers).
-
-## 🎨 Priorität 4: UI/UX & Immersion
-- [ ] **Speichern/Laden**: Export und Import des aktuellen System-Zustands als JSON.
-- [ ] **Audio**: Soundeffekte für Raketenstarts, Kollisionen, UI-Interaktion.
-- [ ] **Einstellungen**: Grafik-Optionen (Trail-Länge, Partikel-Anzahl) für Performance.
-- [ ] **Mobile Support**: Touch-Controls für Zoom/Pan und Buttons optimieren.
-
-## ✅ Erledigt
-- [x] **Lagrange Punkte Rendering**
-- [x] **Lagrange Pilot (Snap)**
-- [x] **Planeten Benennung**
-- [x] **Zoom mit Mauszeiger-Fokus**
-- [x] **Basis-Raketen-Missionen (Start, Orbit, Transfer)**
+## Priorität 3 – Betriebsfähigkeit & Dokumentation
+- [ ] **CI/CD-Pipeline (M)**: Automatisierte Lint-/Test-/Build-Pipeline (z.B. GitHub Actions) und Preview-Deploy für Branches.
+- [ ] **Projekt-Dokumentation (M)**: README/Projekt.md um Architektur-Überblick, Simulationsannahmen, Performance-Tuning, Known-Issues und lokale Setup-/Test-Hinweise erweitern.
