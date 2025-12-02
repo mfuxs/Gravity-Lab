@@ -68,6 +68,11 @@ const GravitySimV10 = () => {
   const viewRef = useRef({ x: 0, y: 0, zoom: 0.5 });
   const lastPanRef = useRef({ x: 0, y: 0 });
   const timeScaleRef = useRef(0.5); // Dynamic Time Scale
+  const historyRef = useRef([]); // Stores simulation states
+  const historyIndexRef = useRef(-1); // Current position in history
+  const timeAccumulatorRef = useRef(0); // For fractional time steps
+
+
 
   // Achievement Definitions
   const ACHIEVEMENTS = [
@@ -201,15 +206,83 @@ const GravitySimV10 = () => {
   const physicsLoop = () => {
     if (bodiesRef.current.length > 0) unlockAchievement('first_steps');
     const steps = configRef.current.highPrecision ? PHYSICS_SUBSTEPS : 1;
-    const dt = (1 / steps) * timeScaleRef.current;
-    for (let s = 0; s < steps; s++) {
-      physicsStep(dt, bodiesRef.current, configRef.current, spawnParticles, keysRef.current, timeScaleRef);
+    const dt = (1 / steps); // Always positive dt for physics calculation
+
+    // Accumulate time debt
+    timeAccumulatorRef.current += Math.abs(timeScaleRef.current);
+
+    // How many "frames" of simulation to process this render tick
+    const framesToProcess = Math.floor(timeAccumulatorRef.current);
+
+    // We only consume the accumulator if we actually process frames
+    // But for < 1 speeds, we might process 0 frames.
+    // We should decrement only what we use.
+    if (framesToProcess > 0) {
+      timeAccumulatorRef.current -= framesToProcess;
     }
 
-    // Only check collisions if time is moving forward
+    // --- TIME TRAVEL LOGIC ---
     if (timeScaleRef.current > 0) {
-      checkCollisions();
+      // FORWARD: Calculate Physics & Record
+
+      // If framesToProcess is 0 (slow motion waiting), we don't run physics
+      // But we still record the state (duplicate) to maintain playback speed
+
+      if (framesToProcess > 0) {
+        const totalSteps = framesToProcess * steps;
+        for (let s = 0; s < totalSteps; s++) {
+          physicsStep(dt, bodiesRef.current, configRef.current, spawnParticles, keysRef.current, timeScaleRef);
+        }
+        checkCollisions();
+      }
+
+      // Record State (every frame)
+      const snapshot = bodiesRef.current.map(b => ({
+        id: b.id, x: b.x, y: b.y, vx: b.vx, vy: b.vy, mass: b.mass, radius: b.radius,
+        color: b.color, type: b.type, isStatic: b.isStatic, name: b.name,
+        trail: [...b.trail], // Copy trail
+        controller: b.controller ? { fuel: b.controller.fuel } : null
+      }));
+
+      // If we were in the past, overwrite the future
+      if (historyIndexRef.current < historyRef.current.length - 1) {
+        historyRef.current = historyRef.current.slice(0, historyIndexRef.current + 1);
+      }
+
+      historyRef.current.push(snapshot);
+      historyIndexRef.current++;
+
+      // Limit History Size (e.g., 3600 frames)
+      if (historyRef.current.length > 3600) {
+        historyRef.current.shift();
+        historyIndexRef.current--;
+      }
+
+    } else if (timeScaleRef.current < 0) {
+      // REWIND: Replay History
+      // Skip back 'framesToProcess' frames
+      if (framesToProcess > 0) {
+        historyIndexRef.current = Math.max(0, historyIndexRef.current - framesToProcess);
+
+        if (historyRef.current[historyIndexRef.current]) {
+          const snapshot = historyRef.current[historyIndexRef.current];
+
+          // Restore State
+          bodiesRef.current = snapshot.map(s => {
+            const b = new Body(s.x, s.y, s.vx, s.vy, s.mass, s.color, s.type, s.isStatic, s.name);
+            b.id = s.id;
+            b.radius = s.radius;
+            b.trail = s.trail;
+            if (s.controller && b.controller) {
+              b.controller.fuel = s.controller.fuel;
+            }
+            return b;
+          });
+          setBodyCount(bodiesRef.current.length);
+        }
+      }
     }
+    // PAUSE (timeScale == 0): Do nothing
 
     let activeRocket = null;
     let nearestBodyDist = Infinity;
