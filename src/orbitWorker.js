@@ -1,6 +1,6 @@
+import { PHYSICS_CONSTANTS } from './physicsConfig';
 
-const G = 0.5; // Must match PhysicsEngine.js
-const SOFTENING = 5; // Must match PhysicsEngine.js
+const { G, SOFTENING } = PHYSICS_CONSTANTS; // Must match PhysicsEngine.js
 
 self.onmessage = function(e) {
   const { bodies, steps, dt } = e.data;

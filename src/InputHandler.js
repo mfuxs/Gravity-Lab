@@ -4,6 +4,8 @@ export class InputHandler {
     this.callbacks = callbacks;
     this.keys = {};
     this.drag = { isDragging: false, startX: 0, startY: 0, currentX: 0, currentY: 0, dragType: null };
+    this.lastWheelTs = -Infinity;
+    this.wheelCooldownMs = 16; // ~60fps guard
     
     // Bind methods
     this.handleStart = this.handleStart.bind(this);
@@ -75,9 +77,8 @@ export class InputHandler {
   handleMove(x, y) {
     if (!this.drag.isDragging) {
       // Just update current mouse position for hover effects
-      this.drag.currentX = x;
-      this.drag.currentY = y;
-      this.callbacks.updateDrag({ ...this.drag }); 
+      this.drag = { ...this.drag, currentX: x, currentY: y };
+      this.callbacks.updateDrag({ ...this.drag });
       return;
     }
 
@@ -89,11 +90,9 @@ export class InputHandler {
       const dx = x - this.drag.currentX;
       const dy = y - this.drag.currentY;
       this.callbacks.updateView({ x: view.x + dx, y: view.y + dy, zoom: view.zoom });
-      this.drag.currentX = x;
-      this.drag.currentY = y;
+      this.drag = { ...this.drag, currentX: x, currentY: y };
     } else {
-      this.drag.currentX = x;
-      this.drag.currentY = y;
+      this.drag = { ...this.drag, currentX: x, currentY: y };
     }
     this.callbacks.updateDrag(this.drag);
   }
@@ -121,12 +120,17 @@ export class InputHandler {
         }
     }
 
-    this.drag.isDragging = false;
-    this.drag.isPersistent = false;
+    this.drag = { ...this.drag, isDragging: false, isPersistent: false };
     this.callbacks.updateDrag(this.drag);
   }
 
   handleWheel(e) {
+    const now = performance.now();
+    if (now - this.lastWheelTs < this.wheelCooldownMs) {
+      return;
+    }
+    this.lastWheelTs = now;
+
     e.preventDefault();
     const { view } = this.callbacks.getState();
     const zoomSensitivity = 0.001;

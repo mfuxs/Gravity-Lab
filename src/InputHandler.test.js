@@ -5,11 +5,13 @@ describe('InputHandler', () => {
   let canvas;
   let callbacks;
   let inputHandler;
+  let state;
 
   beforeEach(() => {
     canvas = document.createElement('canvas');
+    state = { view: { x: 0, y: 0, zoom: 1 }, tool: 'planet', keys: {} };
     callbacks = {
-      getState: vi.fn().mockReturnValue({ view: { x: 0, y: 0, zoom: 1 }, tool: 'planet' }),
+      getState: vi.fn(() => state),
       updateDrag: vi.fn(),
       updateView: vi.fn(),
       updateKeys: vi.fn(),
@@ -46,6 +48,59 @@ describe('InputHandler', () => {
     canvas.dispatchEvent(moveEvent);
     
     expect(callbacks.updateView).toHaveBeenCalledWith({ x: 10, y: 10, zoom: 1 });
+  });
+
+  it('should keep persistent drag on quick move-tool tap', () => {
+    state.tool = 'move';
+    vi.spyOn(Date, 'now').mockReturnValue(1000);
+
+    const startEvent = new MouseEvent('mousedown', { button: 0 });
+    Object.defineProperty(startEvent, 'offsetX', { value: 5 });
+    Object.defineProperty(startEvent, 'offsetY', { value: 5 });
+    canvas.dispatchEvent(startEvent);
+
+    Date.now.mockReturnValue(1100); // 100ms later
+    const endEvent = new MouseEvent('mouseup');
+    window.dispatchEvent(endEvent);
+
+    expect(inputHandler.drag.isPersistent).toBe(true);
+    expect(inputHandler.drag.isDragging).toBe(true);
+    Date.now.mockRestore();
+  });
+
+  it('should throttle wheel events and update zoom', () => {
+    const rectSpy = vi.spyOn(canvas, 'getBoundingClientRect').mockReturnValue({ left: 0, top: 0, width: 100, height: 100 });
+    const nowSpy = vi.spyOn(performance, 'now');
+
+    const buildEvent = (ts) => {
+      nowSpy.mockReturnValue(ts);
+      return {
+        deltaY: -100,
+        clientX: 50,
+        clientY: 50,
+        preventDefault: vi.fn(),
+      };
+    };
+
+    inputHandler.handleWheel(buildEvent(0));
+    inputHandler.handleWheel(buildEvent(5));
+    expect(callbacks.updateView).toHaveBeenCalledTimes(1);
+
+    inputHandler.handleWheel(buildEvent(30));
+    expect(callbacks.updateView).toHaveBeenCalledTimes(2);
+
+    rectSpy.mockRestore();
+    nowSpy.mockRestore();
+  });
+
+  it('should update keys on key events', () => {
+    const keyDown = new KeyboardEvent('keydown', { key: 'w' });
+    window.dispatchEvent(keyDown);
+    expect(callbacks.updateKeys).toHaveBeenCalledWith(expect.objectContaining({ w: true }));
+
+    const keyUp = new KeyboardEvent('keyup', { key: 'w' });
+    window.dispatchEvent(keyUp);
+    expect(callbacks.updateKeys).toHaveBeenCalledWith(expect.objectContaining({ w: false }));
   });
 
   it('should detach event listeners', () => {
