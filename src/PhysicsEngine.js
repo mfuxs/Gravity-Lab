@@ -1,13 +1,18 @@
 import { Quadtree } from './Quadtree';
 import { MissionControl } from './MissionControl';
+import { PHYSICS_CONSTANTS } from './physicsConfig';
 
-// --- Constants ---
-export const G = 0.8;
-export const SOFTENING = 5;
-export const TRAIL_LENGTH = 120;
-export const PHYSICS_SUBSTEPS = 8;
-export const MAX_SPEED = 1000; // Speed limit to prevent tunneling
-export const MAX_FORCE = 5000; // Force limit to prevent singularities
+// --- Constants (re-exported for backward compatibility) ---
+export const {
+  G,
+  SOFTENING,
+  TRAIL_LENGTH,
+  PHYSICS_SUBSTEPS,
+  MAX_SPEED,
+  MAX_FORCE,
+  MAX_POSITION,
+  VELOCITY_DAMPING,
+} = PHYSICS_CONSTANTS;
 
 // --- Classes ---
 export class Particle {
@@ -310,12 +315,21 @@ export const physicsStep = (dt, bodies, config, spawnParticles, keys, timeScaleR
       continue;
     }
 
-    // Velocity Clamping
+    // Bounds Check (Infinity / runaway)
+    if (!Number.isFinite(b.x) || !Number.isFinite(b.y) || Math.abs(b.x) > MAX_POSITION || Math.abs(b.y) > MAX_POSITION) {
+      console.warn(`Physics Governance: Removing out-of-bounds body ${b.id}`);
+      bodies.splice(i, 1);
+      continue;
+    }
+
+    // Velocity Clamping with gentle damping to avoid sharp direction flips
     const speedSq = b.vx * b.vx + b.vy * b.vy;
     if (speedSq > MAX_SPEED * MAX_SPEED) {
       const speed = Math.sqrt(speedSq);
-      b.vx = (b.vx / speed) * MAX_SPEED;
-      b.vy = (b.vy / speed) * MAX_SPEED;
+      const clampedVx = (b.vx / speed) * MAX_SPEED;
+      const clampedVy = (b.vy / speed) * MAX_SPEED;
+      b.vx = clampedVx * (1 - VELOCITY_DAMPING);
+      b.vy = clampedVy * (1 - VELOCITY_DAMPING);
     }
   }
 

@@ -64,6 +64,11 @@ describe('MissionControl', () => {
     expect(spawnParticles).not.toHaveBeenCalled();
   });
 
+  it('should skip update and log error if bodies missing', () => {
+    missionControl.update(1, null, {}, null, { current: 1 });
+    expect(missionControl.missionLog).toContain('ERR: No bodies provided to mission update');
+  });
+
   it('should handle mission profile configuration failure', () => {
     const success = missionControl.configureMissionProfile([]);
     expect(success).toBe(false);

@@ -78,6 +78,79 @@ export class MissionControl {
     }
   }
 
+  ensureSpawnParticles(spawnParticles) {
+    return typeof spawnParticles === 'function' ? spawnParticles : () => {};
+  }
+
+  ensureTimeScaleRef(timeScaleRef) {
+    if (timeScaleRef && typeof timeScaleRef.current === 'number') return timeScaleRef;
+    return { current: 1 };
+  }
+
+  sanitizeBodies(bodies) {
+    if (!Array.isArray(bodies)) return [];
+    return bodies.filter(Boolean);
+  }
+
+  findNearestPlanet(bodies) {
+    let nearest = null;
+    let minDist = Infinity;
+    for (let b of bodies) {
+      if (b !== this.body && b.type === 'planet') {
+        const d = Math.hypot(b.x - this.body.x, b.y - this.body.y);
+        if (d < minDist) { minDist = d; nearest = b; }
+      }
+    }
+    return { nearest, minDist };
+  }
+
+  applyAtmosphericDrag(nearest, dist, dt, spawnParticles) {
+    if (!nearest) return;
+    const alt = dist - nearest.radius;
+    const atmosphereHeight = nearest.radius * 0.4; // Atmosphere is 40% of radius
+
+    if (alt < atmosphereHeight && alt > 0) {
+      // Density decays exponentially
+      const rho = Math.exp(-alt / (atmosphereHeight * 0.2));
+      const speedSq = this.body.vx * this.body.vx + this.body.vy * this.body.vy;
+      const speed = Math.sqrt(speedSq);
+
+      if (speed > 0.1) {
+        // Drag Equation: Fd = 0.5 * Cd * A * rho * v^2
+        const Cd = 0.5; // Drag Coefficient
+        const A = 0.01; // Frontal Area
+        const dragForce = 0.5 * Cd * A * rho * speedSq;
+
+        // Apply Drag (opposite to velocity)
+        const dragAx = -(this.body.vx / speed) * dragForce / this.body.mass;
+        const dragAy = -(this.body.vy / speed) * dragForce / this.body.mass;
+
+        this.body.vx += dragAx * dt;
+        this.body.vy += dragAy * dt;
+
+        // Re-entry Heating Visuals
+        if (speed > 3 && Math.random() > 0.5) {
+          spawnParticles(this.body.x, this.body.y, '#f97316', 1, 1); // Orange sparks
+        }
+      }
+    }
+  }
+
+  handleManualControls(keys, dt, spawnParticles) {
+    if (keys['w']) {
+      this.applyThrust(0.2, dt, spawnParticles);
+    } else {
+      this.thrusting = false;
+    }
+
+    if (keys['a']) {
+      this.body.angle -= 0.05 * dt;
+    }
+    if (keys['d']) {
+      this.body.angle += 0.05 * dt;
+    }
+  }
+
   configureMissionProfile(bodies) {
     // 1. Identify Home Body (Launch Site)
     let homeBody = null;
@@ -137,48 +210,21 @@ export class MissionControl {
   update(dt, bodies, keys, spawnParticles, timeScaleRef) {
     if (this.gracePeriod > 0) this.gracePeriod -= dt;
 
+    const safeBodies = this.sanitizeBodies(bodies);
+    if (safeBodies.length === 0) {
+      this.missionLog.push('ERR: No bodies provided to mission update');
+      this.thrusting = false;
+      return;
+    }
+
+    bodies = safeBodies;
+    const emitParticles = this.ensureSpawnParticles(spawnParticles);
+    timeScaleRef = this.ensureTimeScaleRef(timeScaleRef);
+    keys = keys || {};
+
     // --- ATMOSPHERE & DRAG ---
-    // Find nearest body with atmosphere
-    let nearest = null;
-    let minDist = Infinity;
-    for (let b of bodies) {
-      if (b !== this.body && b.type === 'planet') {
-        const d = Math.hypot(b.x - this.body.x, b.y - this.body.y);
-        if (d < minDist) { minDist = d; nearest = b; }
-      }
-    }
-
-    if (nearest) {
-      const dist = minDist;
-      const alt = dist - nearest.radius;
-      const atmosphereHeight = nearest.radius * 0.4; // Atmosphere is 40% of radius
-
-      if (alt < atmosphereHeight && alt > 0) {
-        // Density decays exponentially
-        const rho = Math.exp(-alt / (atmosphereHeight * 0.2));
-        const speedSq = this.body.vx * this.body.vx + this.body.vy * this.body.vy;
-        const speed = Math.sqrt(speedSq);
-
-        if (speed > 0.1) {
-          // Drag Equation: Fd = 0.5 * Cd * A * rho * v^2
-          const Cd = 0.5; // Drag Coefficient
-          const A = 0.01; // Frontal Area
-          const dragForce = 0.5 * Cd * A * rho * speedSq;
-
-          // Apply Drag (opposite to velocity)
-          const dragAx = -(this.body.vx / speed) * dragForce / this.body.mass;
-          const dragAy = -(this.body.vy / speed) * dragForce / this.body.mass;
-
-          this.body.vx += dragAx * dt;
-          this.body.vy += dragAy * dt;
-
-          // Re-entry Heating Visuals
-          if (speed > 3 && Math.random() > 0.5) {
-            spawnParticles(this.body.x, this.body.y, '#f97316', 1, 1); // Orange sparks
-          }
-        }
-      }
-    }
+    const { nearest, minDist } = this.findNearestPlanet(bodies);
+    this.applyAtmosphericDrag(nearest, minDist, dt, emitParticles);
 
     if (this.fuel > 0) {
       // --- VARIABLE MASS ---
@@ -186,21 +232,7 @@ export class MissionControl {
       if (this.body.mass === 1) this.updateMass(); // Fix initial mass if default
 
       // --- MANUAL CONTROL ---
-      if (keys['w']) {
-        this.applyThrust(0.2, dt, spawnParticles);
-      } else if (keys['s']) {
-        // Retrograde / Brake? Or just cut throttle
-        this.thrusting = false;
-      } else {
-        this.thrusting = false;
-      }
-
-      if (keys['a']) {
-        this.body.angle -= 0.05 * dt;
-      }
-      if (keys['d']) {
-        this.body.angle += 0.05 * dt;
-      }
+      this.handleManualControls(keys, dt, emitParticles);
 
       // --- AUTO PILOT LOGIC (Override if Manual) ---
       // Only run autopilot if NO manual input
@@ -266,7 +298,7 @@ export class MissionControl {
               // This IS a cycle.
               // I should move Body to its own file `Body.js` later.
               // For now, I will skip creating the debris body to avoid the cycle, or just use particles.
-              spawnParticles(this.body.x, this.body.y, '#fff', 20, 3); // Explosion/Sep effect
+              emitParticles(this.body.x, this.body.y, '#fff', 20, 3); // Explosion/Sep effect
             }
             this.missionPhase = 'gravity_turn';
             thrust = 0.1; // Momentary pause/low thrust
@@ -453,7 +485,7 @@ export class MissionControl {
 
           if (thrust > 0) {
             // Apply Thrust via centralized method
-             this.applyThrust(thrust, dt, spawnParticles);
+            this.applyThrust(thrust, dt, emitParticles);
           } else {
             // Ensure thrusting is off if autopilot demands 0
             if (!manualInput) this.thrusting = false;
